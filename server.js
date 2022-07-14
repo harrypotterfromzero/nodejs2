@@ -54,6 +54,9 @@ app.post('/login', function (req, res, next) {
 
 })
 
+var accountRouter= require('./routers/account')
+app.use('/api/account/',accountRouter);
+
 app.post("/", function (req, res, next) {
   res.send("POST request to the homepage");
 });
