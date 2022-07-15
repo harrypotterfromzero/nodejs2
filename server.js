@@ -4,6 +4,9 @@ const port = 3000;
 var bodyParser = require("body-parser");
 const AccountModel = require("./models/account");
 const path = require('path');
+var duongDanPublic = path.join(__dirname,'public');
+
+
 app.use(
   bodyParser.urlencoded({
     extended: false,
@@ -11,6 +14,7 @@ app.use(
 );
 
 app.use(bodyParser.json());
+app.use('/public',express.static(path.join(__dirname,'public')))
 
 app.post("/register", (req, res, next) => {
   var username = req.body.username;
@@ -60,7 +64,7 @@ app.use("/api/account", accountRouter);
 app.post("/", function (req, res, next) {
   res.send("POST request to the homepage");
 });
-const PAGE_SIZE = 3;
+const PAGE_SIZE = 5;
 app.get("/user", (req, res, next) => {
   var page = req.query.page;
   if (page) {
@@ -73,15 +77,29 @@ app.get("/user", (req, res, next) => {
       .skip(skip)
       .limit(PAGE_SIZE)
       .then((data) => {
-        res.json(data);
+          AccountModel.countDocuments().then((total)=>{
+   
+            var tongSoPage = Math.ceil(total/PAGE_SIZE);
+            res.json({
+              tongSoPage:tongSoPage,
+              data:data
+            })
+          })
       })
       .catch((err) => {
         res.status(500).json("Loi server pagging");
       });
   } else {
+    //get all
     AccountModel.find()
       .then((data) => {
-        res.json(data);
+        AccountModel.countDocuments().then((err, total)=>{
+          var tongSoPage = Math.ceil(total/PAGE_SIZE)
+          res.json({
+            tongSoPage:tongSoPage,
+            data:data
+          })
+        })
       })
       .catch((err) => {
         res.status(500).json("Loi server");
