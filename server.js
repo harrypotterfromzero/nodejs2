@@ -3,18 +3,18 @@ const app = express();
 const port = 3000;
 var bodyParser = require("body-parser");
 const AccountModel = require("./models/account");
-const path = require('path');
-var duongDanPublic = path.join(__dirname,'public');
-
-
+const path = require("path");
+var duongDanPublic = path.join(__dirname, "public");
+const jwt = require("jsonwebtoken");
+var cookieParser = require('cookie-parser')
 app.use(
   bodyParser.urlencoded({
     extended: false,
   })
 );
-
+app.use(cookieParser());
 app.use(bodyParser.json());
-app.use('/public',express.static(path.join(__dirname,'public')))
+app.use("/public", express.static(path.join(__dirname, "public")));
 
 app.post("/register", (req, res, next) => {
   var username = req.body.username;
@@ -39,6 +39,11 @@ app.post("/register", (req, res, next) => {
   });
 });
 
+//dang nhap
+app.get("/login", (req, res, next) => {
+  res.sendFile(path.join(__dirname, "login.html"));
+});
+
 app.post("/login", function (req, res, next) {
   var username = req.body.username;
   var password = req.body.password;
@@ -47,8 +52,20 @@ app.post("/login", function (req, res, next) {
     password: password,
   })
     .then((data) => {
-      if (data) res.json("Dang nhap thanh cong");
-      else res.status(300).json("Dang nhap that bai");
+      if (data) {
+        var token = jwt.sign(
+          {
+            _id: data._id,
+          },
+          "mk"
+        );
+        return res.json({
+          message: "thanh cong",
+          token: token,
+        });
+      } else {
+        return res.json("that bai");
+      }
     })
     .catch((err) => {
       res.status(500).json("Co loi ben server");
@@ -56,6 +73,7 @@ app.post("/login", function (req, res, next) {
 });
 
 var accountRouter = require("./routers/account");
+const { db } = require("./models/account");
 app.use("/api/account", accountRouter);
 
 // var paggingRouter = require("./routers/pagging");
@@ -77,14 +95,13 @@ app.get("/user", (req, res, next) => {
       .skip(skip)
       .limit(PAGE_SIZE)
       .then((data) => {
-          AccountModel.countDocuments().then((total)=>{
-   
-            var tongSoPage = Math.ceil(total/PAGE_SIZE);
-            res.json({
-              tongSoPage:tongSoPage,
-              data:data
-            })
-          })
+        AccountModel.countDocuments().then((total) => {
+          var tongSoPage = Math.ceil(total / PAGE_SIZE);
+          res.json({
+            tongSoPage: tongSoPage,
+            data: data,
+          });
+        });
       })
       .catch((err) => {
         res.status(500).json("Loi server pagging");
@@ -93,13 +110,13 @@ app.get("/user", (req, res, next) => {
     //get all
     AccountModel.find()
       .then((data) => {
-        AccountModel.countDocuments().then((err, total)=>{
-          var tongSoPage = Math.ceil(total/PAGE_SIZE)
+        AccountModel.countDocuments().then((err, total) => {
+          var tongSoPage = Math.ceil(total / PAGE_SIZE);
           res.json({
-            tongSoPage:tongSoPage,
-            data:data
-          })
-        })
+            tongSoPage: tongSoPage,
+            data: data,
+          });
+        });
       })
       .catch((err) => {
         res.status(500).json("Loi server");
@@ -107,8 +124,45 @@ app.get("/user", (req, res, next) => {
   }
 });
 
-app.get('/home', (req, res, next) => {
-  res.sendFile(path.join(__dirname,'index.html'))
-})
+app.get("/home", (req, res, next) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+//middleware
+app.get(
+  "/private",
+  (req, res, next) => {
+    try {
+      var token = req.cookies.token;
+      var ketqua = jwt.verify(token, "mk");
+      var user =db.find(token.id);
+      res.data =user
+      if (ketqua) next();
+    } catch (error) {
+       return res.redirect('/login');
+   
+    }
+  },
+  (req, res, next) => {
+    res.json("dang nhap thanh cong");
+  }
+);
+app.get(
+  "/private/:token",
+  (req, res, next) => {
+    try {
+      var token = req.cookies.token;
+      console.log(token);
+      var ketqua = jwt.verify(token, "mk");
+      if (ketqua) next();
+    } catch (error) {
+       return res.redirect('/login');
+   
+    }
+  },
+  (req, res, next) => {
+    res.json("dang nhap thanh cong");
+  }
+);
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));
