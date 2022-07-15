@@ -3,10 +3,10 @@ const app = express();
 const port = 3000;
 var bodyParser = require("body-parser");
 const AccountModel = require("./models/account");
-
+const path = require('path');
 app.use(
   bodyParser.urlencoded({
-    extended: true,
+    extended: false,
   })
 );
 
@@ -51,42 +51,46 @@ app.post("/login", function (req, res, next) {
     });
 });
 
-//phan trang
-const PAGE_SIZE = 2;
-app.get("/user", (req, res) => {
-  var page = req.query.page;
+var accountRouter = require("./routers/account");
+app.use("/api/account", accountRouter);
 
+// var paggingRouter = require("./routers/pagging");
+// app.use("/api/pagging", paggingRouter);
+
+app.post("/", function (req, res, next) {
+  res.send("POST request to the homepage");
+});
+const PAGE_SIZE = 3;
+app.get("/user", (req, res, next) => {
+  var page = req.query.page;
   if (page) {
     page = parseInt(page);
-    // res.json(page);
-    var soLuongBoQua = (page - 1) * PAGE_SIZE;
-
-    AccountModel.find({})
-      .skip(soLuongBoQua)
+    if (page < 1) {
+      page = 1;
+    }
+    var skip = (page - 1) * PAGE_SIZE;
+    AccountModel.find()
+      .skip(skip)
       .limit(PAGE_SIZE)
       .then((data) => {
         res.json(data);
       })
       .catch((err) => {
-        res.status(500).json("Loi server 1");
+        res.status(500).json("Loi server pagging");
       });
   } else {
-    AccountModel.find({})
+    AccountModel.find()
       .then((data) => {
         res.json(data);
       })
       .catch((err) => {
         res.status(500).json("Loi server");
-        console.log(err);
       });
   }
 });
 
-var accountRouter = require("./routers/account");
-app.use("/api/account/", accountRouter);
-
-app.post("/", function (req, res, next) {
-  res.send("POST request to the homepage");
-});
+app.get('/home', (req, res, next) => {
+  res.sendFile(path.join(__dirname,'index.html'))
+})
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));

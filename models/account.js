@@ -1,6 +1,10 @@
 const mongoose = require("mongoose");
 mongoose.connect(
   "mongodb+srv://hptadmin:hpthnadmin@cluster0.ubsce.mongodb.net/my_database",
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  }
 );
 
 const Schema = mongoose.Schema;
@@ -15,14 +19,11 @@ const AccountSchema = new Schema(
   }
 );
 const AccountModel = mongoose.model("Account", AccountSchema);
-AccountModel.find({
-  username: "quangna",
-})
-
-  .then(function (data) {
-    console.log("dataAccount", data);
+for(let i=0;i<20;i++)
+{
+  AccountModel.create({
+    username: 'QuangNA _'+i,
+    password: '123456'
   })
-  .catch(function (err) {
-    console.log("loi", err);
-  });
+}
 module.exports = AccountModel;
